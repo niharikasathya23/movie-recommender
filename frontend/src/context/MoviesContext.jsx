@@ -13,7 +13,7 @@ export const MoviesProvider = ({ children }) => {
     const [noResults, setNoResults] = useState(false);
 
     useEffect(async () => {
-        const response = await fetch("http://34.28.25.168:8000/autocomplete")
+        const response = await fetch("http://104.154.48.14:8000/autocomplete")
         const data = await response.json();
         setMovies(data);
     }, []);
