@@ -12,10 +12,12 @@ import numpy as np
 import os
 import time
 
-MONGO_HOST = os.getenv("MONGOHOST")
-# TF_SERVING = "localhost"
-TF_SERVING = os.getenv("TF_SERVING_HOST")
+#DATABASE
 
+#MONGO_HOST = "localhost"
+MONGO_HOST = os.getenv("MONGOHOST")
+#TF_SERVING = "localhost"
+TF_SERVING = os.getenv("TF_SERVING_HOST")
 mongo_client = MongoClient(MONGO_HOST, 27017)
 db = mongo_client["MovieRecommenderDB"]
 movie_col = db["movies"]
@@ -24,12 +26,12 @@ status_col = db["status"]
 ratings_col = db["ratings"]
 movie_encoded_col = db["movieEncoding"]
 
-app = FastAPI()
+#SERVER APP
 
+app = FastAPI()
 origins = [
     "*"
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -38,8 +40,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#ENDPOINT
 def get_number_of(collection):
-    num_of_movies = collection.find({}).count()
+    num_of_movies = collection.count_documents({})
     return num_of_movies
 
 def save_to_db(csv_file, file_size, jobId, collection):
@@ -48,11 +51,16 @@ def save_to_db(csv_file, file_size, jobId, collection):
     for i, l in enumerate(csv_file.file):
         pass
     csv_file.file.seek(0)
-    headers = csv_file.file.readline().decode().replace(";\n", "").split(";")
+    DELIMITER = ";"
+    headers = csv_file.file.readline().decode().replace(f"{DELIMITER}\\n", "").replace("\ufeff", "").split(f"{DELIMITER}")
+    print(headers)
+    for idx in range(len(headers)):
+        headers[idx] = headers[idx].replace("\n", "").replace("\r",  "")
+
     for j, l in enumerate(csv_file.file):
         line = l.decode()
-        line = line.replace(";\n", "")
-        row_elem = line.split(";")
+        line = line.replace(f"{DELIMITER}\\n", "")
+        row_elem = line.split(f"{DELIMITER}")
         if len(row_elem) > len(headers):
             job_doc = {"jobId": jobId,
                 "status": "Error",
@@ -62,8 +70,11 @@ def save_to_db(csv_file, file_size, jobId, collection):
         else:
             doc = {}
             for e in range(len(row_elem)):
-                doc[headers[e]] = row_elem[e]
-            doc["index"] = _index + j
+                row_elem[e] = row_elem[e].replace("\n", "").replace("\r",  "")
+                row_elem[e] = row_elem[e].split("|")
+                doc[headers[e]] = row_elem[e] if headers[e] == "genres" else row_elem[e][0]
+            doc["index"] = _index + 1
+            _index += 1
             if collection.find_one(doc) is None: 
                 collection.insert_one(doc)
             else:
@@ -77,12 +88,14 @@ def make_movie_encoding():
     for key, item in movie_encoder.items():
         doc = {"movieId": key, "index": item}
         movie_encoded_col.insert_one(doc)
-
+        
 def save_ratings_to_db(csv_file, file_size, jobId):
     save_to_db(csv_file, file_size, jobId, ratings_col)
+    
+@app.get("/encode_movies")
+def encode_movies():
     make_movie_encoding()
-
-
+    
 @app.get("/status/{jobId}")
 def get_status_bulk_update(jobId: str):
     job_doc = status_col.find_one({"jobId": jobId}, {'_id': False})
@@ -91,7 +104,7 @@ def get_status_bulk_update(jobId: str):
 
 def insert_status(doc):
     status_col.insert_one(json.loads(json.dumps(doc)))
-
+    
 @app.post("/movies/bulk_update")
 def bulk_update_movie_database(background_task: BackgroundTasks, csv_file: UploadFile = File(...)):
     jobId = str(uuid.uuid4())
@@ -102,7 +115,6 @@ def bulk_update_movie_database(background_task: BackgroundTasks, csv_file: Uploa
                 "percentage": 0}
     insert_status(job_doc)
     background_task.add_task(save_to_db, csv_file, file_size, jobId, movie_col)
-
     return {"filename": csv_file.filename,
             "file_size": file_size,
             "job": job_doc}
@@ -117,10 +129,12 @@ def bulk_update_rating_database(background_task: BackgroundTasks, csv_file: Uplo
                 "percentage": 0}
     insert_status(job_doc)
     background_task.add_task(save_ratings_to_db, csv_file, file_size, jobId)
-
     return {"filename": csv_file.filename,
             "file_size": file_size,
             "job": job_doc}
+    
+    
+#CALLING MODEL RECOMMENDATIONS
 
 def find_movies_by_ids(id_list):
     title_list = []
@@ -135,7 +149,7 @@ def find_movies_by_ids(id_list):
 def get_recomendation(movie_ids):
     movie_array = np.hstack(([[0]]*len(movie_ids), movie_ids))
     body = {"instances": movie_array.tolist()}
-    url = f"http://{TF_SERVING}:8501/v1/models/movie_model:predict"
+    url = f"http://{TF_SERVING}:8501/v1/models/saved_model:predict"
     response = requests.request("POST", url, data=json.dumps(body))
     aux = response.json()
     return aux
@@ -148,12 +162,10 @@ def get_movie_index(movieIds):
             movie_indexs.append([movie_doc["index"]])
         else:
             pass
-
     return movie_indexs
 
 def encode_movieIds(movieIds):
     encoded_movies = []
-
     for movie in movieIds:
         doc = movie_encoded_col.find_one({"movieId": str(movie)})
         if doc is not None:
@@ -172,7 +184,8 @@ def find_movies_not_watched(movieIndexs):
 def clean_up_recommendations(recommendation_scores, top_indexes):
     recommendation_body = []
     for index in top_indexes:
-        movieId = movie_encoded_col.find_one({"index": int(index)}, {'_id': False})["movieId"]
+        print(index)
+        movieId = movie_col.find_one({"index": int(index)}, {'_id': False})["movieId"]
         movieDoc = movie_col.find_one({"movieId": movieId}, {'_id': False})
         movieScore = recommendation_scores[index]
         body = {
@@ -182,7 +195,6 @@ def clean_up_recommendations(recommendation_scores, top_indexes):
         }
         recommendation_body.append(body)
     return recommendation_body
-
 
 def generate_recommendations(movieIds, jobId):
     start = time.time()
@@ -197,8 +209,7 @@ def generate_recommendations(movieIds, jobId):
     end = time.time()
     timeTaken = end-start
     status_col.update_one({"jobId": jobId}, {"$set": {"status": "complete", "input": inputMovieTitles, "recommendation": recommendations, "timeTaken": timeTaken}})
-
-
+    
 @app.post("/movie/make_recom")
 def make_recomendation(movies: List, background_task: BackgroundTasks):
     jobId = str(uuid.uuid4())

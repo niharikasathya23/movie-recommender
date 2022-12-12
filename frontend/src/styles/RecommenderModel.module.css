@@ -1,0 +1,123 @@
+  .nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+    padding: 1rem 0rem;
+    background-color: rgb(92, 8, 92);
+    border-bottom: 1px solid rgb(134, 20, 134);
+  }
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+    min-width: 70%
+  }
+  
+  .user_available_recommendations, .user_recommendations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid rgb(134, 20, 134);
+    border-radius: 6px;
+    padding: 1rem;
+    box-shadow: 4px 4px 4px rgb(134, 20, 134, 0.2); 
+  }
+  
+  .user_available_recommendations .recommendation, .user_recommendations .recommendation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: purple;
+    color: white;
+    padding: 14px 10px;
+    width: 250px;
+  }
+  
+  .user_available_recommendations .recommendation .movie_info h2, .user_recommendations .recommendation .movie_info h2 {
+    font-size: 1rem;
+    font-weight: bold;
+  }
+
+  .user_available_recommendations .recommendation .genres, .user_recommendations .recommendation .genres {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+    overflow-y: auto;
+    max-width: 250px;
+    margin-top: 16px;
+  }
+
+  .user_available_recommendations .recommendation .genre, .user_recommendations .recommendation .genre {
+    font-size: 0.7rem;
+    font-weight: bold;
+    background-color: rgb(149, 17, 149);
+    border-radius: 6px;
+    color: rgb(248, 248, 248);
+    padding: 2px 4px;
+    cursor: pointer;
+  }
+
+  .user_available_recommendations .recommendation .genre:hover, .user_recommendations .recommendation .genre:hover {
+    background-color: rgb(134, 20, 134);
+  }
+
+  .user_available_recommendations .header, .user_recommendations .header {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    color: black;
+  }
+
+  .user_available_recommendations {
+    border-right: 1px solid rgb(134, 20, 134);
+  }
+
+  .content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 2rem 1rem;
+  }
+
+  .body, .container{
+    height: 100vh;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .actions button {
+    background-color: rgb(92, 8, 92);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .actions button:hover {
+    background-color: rgb(134, 20, 134);
+  }
+
+  @media (max-width: 700px) {
+    .content {
+      grid-template-columns: 1fr;
+    }
+  }

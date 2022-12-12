@@ -1,16 +1,14 @@
 version: "3"
-
 services:
   tensorflow-servings:
     image: tensorflow/serving:latest
     ports:
       - 8501:8501
     environment: 
-      - MODEL_NAME=movie_model
+      - MODEL_NAME=saved_model
     volumes: 
-      - ./ai-model/model:/models/movie_model
+      - ./ai-model/model:/models/saved_model
     depends_on: [mongo]
-
   mongo:
     image: "mongo"
     container_name: "movieDB"
@@ -32,12 +30,11 @@ services:
     environment: 
       - MONGOHOST=mongo
       - TF_SERVING_HOST=tensorflow-servings
-
   frontend:
     build:
       context: frontend/
       dockerfile: Dockerfile
     image: movie-frontend
     ports:
-      - 3000:3000
+      - 5000:5000
     depends_on: ["backend"]
