@@ -25,7 +25,7 @@ export const MoviesProvider = ({ children }) => {
     async function postMovieRecommendations(movieIndexes) {
         let message;
 
-        const response = await fetch("http://34.28.25.168:8000/movie/make_recom",
+        const response = await fetch("http://104.154.48.14:8000/movie/make_recom",
             {
                 method: 'POST',
                 headers: {
@@ -36,7 +36,7 @@ export const MoviesProvider = ({ children }) => {
 
         message = await response.json();
         while (message["status"] == "inProgress") {
-            const response = await fetch("http://34.28.25.168:8000/status/" + message["jobId"])
+            const response = await fetch("http://104.154.48.14:8000/status/" + message["jobId"])
             message = await response.json()
             await new Promise(r => setTimeout(r, 5000)); 
         }
